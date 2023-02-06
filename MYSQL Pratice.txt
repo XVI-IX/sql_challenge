@@ -88,3 +88,68 @@
 				ORDER BY manufacturing_cost
 				LIMIT 1;
 
+6.	Generate a report which contains the top 5 customers who received an
+		average high pre_invoice_discount_pct for the fiscal year 2021 and in the
+		Indian market.
+
+		Query:
+
+				SELECT customer, AVG(pre_invoice_discount_pct) AS average_discount_percentage
+				FROM dim_customer AS d
+				INNER JOIN fact_pre_invoice_deductions AS f
+				ON d.customer_code = f.customer_code
+				WHERE f.fiscal_year = '2021' AND d.market = 'India'
+				GROUP BY d.customer
+				ORDER BY 2 DESC
+				LIMIT 5;
+
+7.	Get the complete report of the Gross sales amount for the customer “Atliq
+		Exclusive” for each month.
+
+		Query:
+
+				SELECT YEAR(s.date) as year, MONTHNAME(s.date) AS month,
+				SUM(s.sold_quantity * g.gross_price) AS gross_amount
+				FROM fact_sales_monthly AS s
+				INNER JOIN dim_customer AS c
+				ON s.customer_code = c.customer_code
+				INNER JOIN fact_gross_price AS g
+				ON s.product_code = g.product_code
+				WHERE c.customer = "Atliq Exclusive"
+				GROUP BY year, month;
+
+8.	In which quarter of 2020, got the maximum total_sold_quantity
+
+		Query:
+
+				SELECT QUARTER(date) AS Quarter, 
+				SUM(sold_quantity) AS total_sold_quantity
+				FROM fact_sales_monthly
+				GROUP BY QUARTER(date)
+				ORDER BY 2 DESC;
+
+9.	Which channel helped to bring more gross sales in the fiscal year 2021
+		and the percentage of contribution
+
+		Query:
+
+				WITH total_gross AS (
+				SELECT SUM(s.sold_quantity * g.gross_price) as total
+				FROM fact_sales_monthly as s
+				INNER JOIN fact_gross_price as g
+				ON s.product_code = g.product_code),
+				gross_sales AS (
+				SELECT p.segment, SUM(s.sold_quantity * g.gross_price) as gross
+				FROM dim_product as p
+				INNER JOIN fact_gross_price as g
+				ON p.product_code = g.product_code
+				INNER JOIN fact_sales_monthly AS s
+				ON p.product_code = s.product_code
+				GROUP BY p.segment)
+				SELECT g.segment AS channel,
+				g.gross AS gross_sales_mln,
+				g.gross / t.total as pct
+				FROM gross_sales AS g
+				CROSS JOIN total_gross as t;
+
+10.

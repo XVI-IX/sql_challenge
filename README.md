@@ -1,55 +1,72 @@
-1. Provide the list of markets in which customer "Atliq Exclusive" operates its business in the APAC region.
+# SQL CHALLENGE QUERIES
+
+1. **Provide the list of markets in which customer "Atliq Exclusive" operates its business in the APAC region.**
 
     Query:
 
     ```sql
-    SELECT DISTINCT(markets)
-    FROM gdb023.dim_customer
+    SELECT DISTINCT(market)
+    FROM dim_customer
     WHERE customer = 'Atliq Exclusive'
     AND region = 'APAC';
     ```
 
-2. What is the percentage of unique product increase in 2021 vs. 2020?
+    **Results**
+    +-------------+
+    | market      |
+    +-------------+
+    | India       |
+    | Indonesia   |
+    | Japan       |
+    | Philiphines |
+    | South Korea |
+    | Australia   |
+    | Newzealand  |
+    | Bangladesh  |
+    +-------------+
 
-    Query:
 
-    - Step 1:
+2. **What is the percentage of unique product increase in 2021 vs. 2020?**
 
-        ```sql
-        WITH count_2020 AS (
-          SELECT count(distinct(product_code)) as count_2020, fiscal_year
-          from fact_sales_monthly
-          where fiscal_year = '2020'),
-          count_2021 AS (
-          SELECT count(distinct(product_code)) as count_2021, fiscal_year
-          from fact_sales_monthly
-          where fiscal_year = '2021')
-        ```
+    **Query:**
 
-    - Step 2:
+    **Step 1:**
 
-        ```sql
-          SELECT a.count_2020 as unique_products_2020,
-          b.count_2021 as unique_products_2021,
-        (((b.count_2021 - a.count_2020) / a.count_2020) * 100) as percentage_chg
-          FROM count_2020 as a
-          cross join count_2021 as b;
-              ```
+    ```sql
+    WITH count_2020 AS (
+        SELECT count(distinct(product_code)) as count_2020, fiscal_year
+        from fact_sales_monthly
+        where fiscal_year = '2020'),
+        count_2021 AS (
+        SELECT count(distinct(product_code)) as count_2021, fiscal_year
+        from fact_sales_monthly
+        where fiscal_year = '2021')
+    ```
 
-3. Provide a report with all the unique product counts for each segment and sort them in descending order of product counts.
+    **Step 2:**
 
-    Query:
+    ```sql
+        SELECT a.count_2020 as unique_products_2020,
+        b.count_2021 as unique_products_2021,
+    (((b.count_2021 - a.count_2020) / a.count_2020) * 100) as percentage_chg
+        FROM count_2020 as a
+        cross join count_2021 as b;
+            ```
 
-    - Step 1:
+3. **Provide a report with all the unique product counts for each segment and sort them in descending order of product counts.**
 
-        ```sql
-        SELECT COUNT(DISTINCT(product_code)) as product_code, segment
-        FROM dim_product 
-        GROUP BY segment
-        ORDER BY 1 DESC;
-        ```
+    **Query:**
 
-4. Follow-up: Which segment had the most increase in unique products in 2021 vs 2020?
+    **Step 1:**
+
+    ```sql
+    SELECT COUNT(DISTINCT(product_code)) as product_code, segment
+    FROM dim_product 
+    GROUP BY segment
+    ORDER BY 1 DESC;
+    ```
+
+4. **Follow-up: Which segment had the most increase in unique products in 2021 vs 2020?**
 
     Query:
 
@@ -78,11 +95,11 @@
     JOIN count_2021 as b;
     ```
 
-5. Get the products that have the highest and lowest manufacturing costs.
+5. **Get the products that have the highest and lowest manufacturing costs.**
 
-Query:
+    **Query:**
 
-- Step 1: highest manufacturing costs
+    **Step 1: highest manufacturing costs**
 
     ```sql
     SELECT dim_product.product_code, product, manufacturing_cost
@@ -94,7 +111,7 @@ Query:
     LIMIT 1;
     ```
 
-    --Step 2: lowest manufacturing costs
+    **Step 2: lowest manufacturing costs**
 
     ```sql
     SELECT dim_product.product_code, product, manufacturing_cost
@@ -105,3 +122,73 @@ Query:
     ORDER BY manufacturing_cost
     LIMIT 1;
     ```
+
+6. **Generate a report which contains the top 5 customers who received an average high pre_invoice_discount_pct for the fiscal year 2021 and in the Indian market.**
+
+    **Query:**
+
+    ```sql
+            SELECT customer, AVG(pre_invoice_discount_pct) AS average_discount_percentage
+            FROM dim_customer AS d
+            INNER JOIN fact_pre_invoice_deductions AS f
+            ON d.customer_code = f.customer_code
+            WHERE f.fiscal_year = '2021' AND d.market = 'India'
+            GROUP BY d.customer
+            ORDER BY 2 DESC
+            LIMIT 5;
+    ```
+
+7. **Get the complete report of the Gross sales amount for the customer “Atliq Exclusive” for each month.**
+
+    **Query:**
+
+    ```sql
+    SELECT YEAR(s.date) as year, MONTHNAME(s.date) AS month,
+    SUM(s.sold_quantity * g.gross_price) AS gross_amount
+    FROM fact_sales_monthly AS s
+    INNER JOIN dim_customer AS c
+    ON s.customer_code = c.customer_code
+    INNER JOIN fact_gross_price AS g
+    ON s.product_code = g.product_code
+    WHERE c.customer = "Atliq Exclusive"
+    GROUP BY year, month;
+    ```
+
+8. **In which quarter of 2020, got the maximum total_sold_quantity**
+
+    **Query:**
+
+    ```sql
+            SELECT QUARTER(date) AS Quarter, 
+            SUM(sold_quantity) AS total_sold_quantity
+            FROM fact_sales_monthly
+            GROUP BY QUARTER(date)
+            ORDER BY 2 DESC;
+    ```
+
+9. **Which channel helped to bring more gross sales in the fiscal year 2021 and the percentage of contribution**
+
+    **Query:**
+
+    ```sql
+        WITH total_gross AS (
+        SELECT SUM(s.sold_quantity * g.gross_price) as total
+        FROM fact_sales_monthly as s
+        INNER JOIN fact_gross_price as g
+        ON s.product_code = g.product_code),
+        gross_sales AS (
+        SELECT p.segment, SUM(s.sold_quantity * g.gross_price) as gross
+        FROM dim_product as p
+        INNER JOIN fact_gross_price as g
+        ON p.product_code = g.product_code
+        INNER JOIN fact_sales_monthly AS s
+        ON p.product_code = s.product_code
+        GROUP BY p.segment)
+        SELECT g.segment AS channel,
+        g.gross AS gross_sales_mln,
+        g.gross / t.total as pct
+        FROM gross_sales AS g
+        CROSS JOIN total_gross as t;
+    ```
+
+    **Result:**
