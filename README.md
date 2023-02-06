@@ -12,9 +12,8 @@
     ```
 
     **Results**
-    +-------------+
     | market      |
-    +-------------+
+    |-------------|
     | India       |
     | Indonesia   |
     | Japan       |
@@ -23,8 +22,6 @@
     | Australia   |
     | Newzealand  |
     | Bangladesh  |
-    +-------------+
-
 
 2. **What is the percentage of unique product increase in 2021 vs. 2020?**
 
